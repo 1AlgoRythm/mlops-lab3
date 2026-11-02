@@ -1,19 +1,19 @@
-# Apache Beam Lab – Word Count on King Lear
+# Apache Beam Lab – Word Count on King Lear, and Eight Plays
 
 [![Tests](https://github.com/1AlgoRythm/mlops-lab3/actions/workflows/tests.yml/badge.svg)](https://github.com/1AlgoRythm/mlops-lab3/actions/workflows/tests.yml)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/1AlgoRythm/mlops-lab3/blob/main/Try_Apache_Beam_Python.ipynb)
 
-An Apache Beam pipeline that counts the words in Shakespeare's *King Lear*. Beam is a library for
-writing data pipelines. A pipeline runs on a "runner", the engine that executes it, and Beam has
-several runners. This pipeline
-reads the play, splits it into words, counts them, sorts them and writes the top words to a CSV
-file. It runs as a normal Python program.
+A notebook that extends the course's Apache Beam lab. Beam is a library for writing data pipelines.
+A pipeline runs on a "runner", the engine that executes it, and Beam has several runners.
 
-A second pipeline, `compare.py`, reads eight plays (four tragedies and four comedies) and compares how
-they use words. `report.py` turns its results into an HTML dashboard. 60 tests check the code.
+The lab counts the words in Shakespeare's *King Lear*. This notebook keeps that lab and then does
+more. It fixes the flaws of the word count, adds a second dataset of eight plays, compares the
+plays and two genres with a second pipeline, and builds an HTML dashboard of the results. 69 tests
+check the code, and one of them runs the whole notebook.
 
 Based on `Labs/Data_Labs/Apache_Beam_Labs` from https://github.com/raminmohammadi/MLOps
-(MLOps, DADS 7305, Northeastern University). The original notebook is kept here, unchanged, as
-`Try_Apache_Beam_Python.ipynb`.
+(MLOps, DADS 7305, Northeastern University). The notebook is `Try_Apache_Beam_Python.ipynb`, the
+same file the lab gives. Its first six cells are the course's own and are unchanged.
 
 ## Contents
 
@@ -32,8 +32,19 @@ Based on `Labs/Data_Labs/Apache_Beam_Labs` from https://github.com/raminmohammad
 
 ## Overview
 
-The pipeline is a chain of steps. Beam calls the data that flows between steps a `PCollection`.
-The steps run in this order:
+The notebook has two parts.
+
+| Cells | What they are |
+|---|---|
+| The first six | The course's lab: set up, and a word count of *King Lear*. Unchanged. |
+| Part 2, section 1 | The flaws of the lab's word count, shown with numbers from its own output |
+| Part 2, section 2 | A fixed word count: lower case, a sorted CSV, `top_n`, stopwords, an input check, run counters |
+| Part 2, section 3 | A second dataset: eight plays, downloaded and checked against checksums |
+| Part 2, section 4 | A second pipeline that compares the plays and two genres |
+| Part 2, section 5 | A dashboard: one self-contained HTML page with charts |
+
+The fixed word count is a chain of steps. Beam calls the data that flows between steps a
+`PCollection`. The steps run in this order:
 
 1. `Read lines`: reads `data/kinglear.txt` (5,525 lines).
 2. `Find words`: splits each line into lower-case words and counts lines and words as it goes.
@@ -47,11 +58,12 @@ On the whole play there are 27,986 words and 4,176 different words. The most com
 
 ## Comparing the plays
 
-`compare.py` is a second pipeline. It reads the files in `plays/`: four tragedies and four comedies,
-one text file per play. The name of the folder is the genre. The files come from the same public
-bucket as the lab's own data. `plays/SOURCES.md` lists each file's address, size and checksum.
+Section 4 of the notebook is a second pipeline. It reads the files in `plays/`: four tragedies and
+four comedies, one text file per play. The name of the folder is the genre. The files come from the
+same public bucket as the lab's own data. Section 3 downloads them and checks each checksum, and
+`plays/SOURCES.md` lists each file's address, size and checksum.
 
-It writes three CSV files to `outputs/`:
+The pipeline writes three CSV files to `outputs/`:
 
 | File | What it holds |
 |---|---|
@@ -59,14 +71,8 @@ It writes three CSV files to `outputs/`:
 | `play_top_words.csv` | The ten most common words of each play, without stopwords |
 | `genre_words.csv` | The 15 words that tragedies use most compared with comedies, and the 15 for comedies |
 
-Run it, then build the report, and open `outputs/report.html` in a browser:
-
-```bash
-python compare.py
-python report.py
-```
-
-`docs/report.html` is a saved copy of the report, and this is how it looks:
+Section 5 turns them into a report. `docs/report.html` is a saved copy of the report, and this is
+how it looks:
 
 ![The report: bars for the length of each play, two charts of genre words, and a table of top words](docs/report.png)
 
@@ -109,8 +115,11 @@ and "Count Orsino".
 ## Requirements
 
 - Python 3.12 or 3.13. Apache Beam 2.77 lists Python 3.10 to 3.14.
-- The packages in `requirements.txt`: `apache-beam` and `pytest`.
-- Tested with Python 3.12.15 and 3.13.16, Apache Beam 2.77.0 and pytest 9.2.0.
+- A place to run a notebook: Jupyter, VS Code or Google Colab.
+- The packages in `requirements.txt`: `apache-beam`, `pandas` (version 1.4.3 up to 2.4, because Beam
+  needs it inside a notebook), `pytest`, and `nbformat`, `nbclient` and `ipykernel` for the tests.
+- Tested with Python 3.12.15 and 3.13.16, Apache Beam 2.77.0, pandas 2.3.3, pytest 9.2.0,
+  nbclient 0.11.0 and ipykernel 7.4.0.
 
 ## Installation
 
@@ -124,79 +133,85 @@ pip install -r requirements.txt
 
 ## Usage
 
-Count the words and write the top 20:
+Open `Try_Apache_Beam_Python.ipynb` and run all the cells from top to bottom. In Colab, use
+*Runtime, Run all*. The notebook's own setup cell installs `apache-beam`, and a pandas that Beam
+accepts, when they are missing.
+
+Running the notebook has these effects:
+
+- The lab's own word count rewrites `outputs/part-00000-of-00001`, with the same counts.
+- The fixed word count writes `outputs/word_counts.csv` and `outputs/word_counts_no_stopwords.csv`.
+- Section 3 downloads the eight plays into `plays/` when they are missing.
+- Section 4 writes the three CSV files, and section 5 writes `outputs/report.html`.
+
+To run the whole notebook without a browser, run its test:
 
 ```bash
-python wordcount.py
-head -5 outputs/word_counts.csv
+pytest tests/test_notebook.py
 ```
 
-Options:
+The three functions that do the work are in cells of the notebook, and you can call them with your
+own input:
 
-| Option | Default | What it does |
+| Function | Parameters | What it does |
 |---|---|---|
-| `--input` | `data/*` | The file or file pattern to read |
-| `--output` | `outputs/word_counts` | The output file name; `.csv` is added |
-| `--top-n` | `20` | Keep the N most common words. `0` keeps all of them |
-| `--stopwords` | none | A file of words to ignore, one per line |
+| `run_wordcount` | `inputs_pattern='data/*'`, `outputs_prefix='outputs/word_counts'`, `top_n=20`, `stopwords_path=None` | Runs the fixed word count and returns its counters. `top_n=0` keeps every word. |
+| `run_compare` | `inputs_pattern='plays/*/*.txt'`, `output_dir='outputs'`, `stopwords_path='stopwords.txt'`, `top_n=10`, `genre_top_n=15`, `min_plays=3`, `min_count=30` | Writes the three CSV files |
+| `build_report` | `output_dir='outputs'` | Reads the three CSV files, writes `report.html` and returns the page |
 
-For example, the eight most common words without the very common ones:
+For example, the eight most common words of *King Lear* without the very common ones:
 
-```bash
-python wordcount.py --top-n 8 --stopwords stopwords.txt
+```python
+run_wordcount('data/*', 'outputs/word_counts_no_stopwords', top_n=8, stopwords_path='stopwords.txt')
 ```
 
 This gives `king` (311), `lear` (253), `thou` (220), `kent` (175), `gloucester` (167), `thy` (161),
-`no` (154) and `so` (141). The program also prints the three counters of the run, for example
-`wordcount: lines 5525, lines_without_words 1665, words 27986`.
+`no` (154) and `so` (141). The call returns the three counters of the run:
+`{'lines': 5525, 'lines_without_words': 1665, 'words': 27986}`.
 
-If the input is missing or empty, the program stops with a message and exits with code 1. It
-writes no output file. The second pipeline is described in [Comparing the plays](#comparing-the-plays).
+If the input is missing or empty, the functions raise `ValueError` with a clear message and write no
+output file.
 
 ## Project Structure
 
 ```
 .
-├── wordcount.py                  the pipeline and its command line
-├── compare.py                    the second pipeline: eight plays, two genres
-├── report.py                     builds the HTML report from the CSV files
-├── stopwords.txt                 a short list of very common words
+├── Try_Apache_Beam_Python.ipynb  the lab notebook: the course's cells, then Part 2
+├── stopwords.txt                 a short list of very common words (the notebook writes it too)
 ├── data/kinglear.txt             the input text (from the original lab)
 ├── plays/                        four tragedies and four comedies, and SOURCES.md
 ├── docs/                         a saved copy of the report, and a picture of it
-├── outputs/part-00000-of-00001   the original lab's output file (unchanged)
-├── Try_Apache_Beam_Python.ipynb  the original lab notebook (unchanged)
-├── tests/                        60 tests in four files, and shared fixtures
+├── outputs/part-00000-of-00001   the original lab's output file
+├── tests/                        69 tests in five files, and shared fixtures
 ├── requirements.txt
 ├── pytest.ini
 └── .github/workflows/tests.yml   runs the tests on GitHub
 ```
 
+The notebook is the only place the code lives. Its code cells in Part 2 carry a tag, `wordcount`,
+`compare` or `report`. The tests run the cells with those tags to get the functions.
+
 ## API Reference
 
-Everything is in `wordcount.py`.
+These names are defined in the tagged cells of the notebook.
 
-| Name | What it does |
-|---|---|
-| `find_words(line)` | Returns the lower-case words of one line |
-| `FindWords` | The Beam step that uses `find_words` and keeps three counters |
-| `rank(word_counts, top_n=0)` | Sorts `(word, count)` pairs, highest count first, then by word |
-| `to_csv(ranked)` | Makes the CSV lines, `word,count` |
-| `check_input(pattern)` | Raises `ValueError` if no file matches or every file is empty |
-| `load_stopwords(path)` | Reads a stopword file into a set |
-| `build_pipeline(...)` | Adds all the steps to a Beam pipeline |
-
-`compare.py` and `report.py` hold the functions of the second pipeline:
-
-| Name | What it does |
-|---|---|
-| `play_key(path)` | Returns `(genre, play)` from a path such as `plays/tragedies/hamlet.txt` |
-| `find_genres(pattern)` | Returns the two genre folder names, or raises `ValueError` if there are not exactly two |
-| `PlayStats` | The custom combiner: counts to `(words, different words)` |
-| `genre_rows(...)` | Scores one word: rate per 10,000 words in each genre, and their ratio |
-| `pick_extremes(rows, top_n)` | Keeps the words that favour each genre most |
-| `WriteCsv` | The composite transform that gathers, sorts and writes one CSV |
-| `render(...)` in `report.py` | Builds the whole HTML page from the three CSV files |
+| Name | Tag | What it does |
+|---|---|---|
+| `find_words(line)` | `wordcount` | Returns the lower-case words of one line |
+| `FindWords` | `wordcount` | The Beam step that uses `find_words` and keeps three counters |
+| `rank(word_counts, top_n=0)` | `wordcount` | Sorts `(word, count)` pairs, highest count first, then by word |
+| `to_csv(ranked)` | `wordcount` | Makes the CSV lines, `word,count` |
+| `check_input(pattern)` | `wordcount` | Raises `ValueError` if no file matches or every file is empty |
+| `load_stopwords(path)` | `wordcount` | Reads a stopword file into a set |
+| `build_wordcount_pipeline(...)` | `wordcount` | Adds all the steps of the word count to a Beam pipeline |
+| `play_key(path)` | `compare` | Returns `(genre, play)` from a path such as `plays/tragedies/hamlet.txt` |
+| `find_genres(pattern)` | `compare` | Returns the two genre folder names, or raises `ValueError` if there are not exactly two |
+| `PlayStats` | `compare` | The custom combiner: counts to `(words, different words)` |
+| `genre_rows(...)` | `compare` | Scores one word: rate per 10,000 words in each genre, and their ratio |
+| `pick_extremes(rows, top_n)` | `compare` | Keeps the words that favour each genre most |
+| `WriteCsv` | `compare` | The composite transform that gathers, sorts and writes one CSV |
+| `build_compare_pipeline(...)` | `compare` | Adds all the steps of the comparison to a Beam pipeline |
+| `render(...)` | `report` | Builds the whole HTML page from the three CSV files |
 
 A word is letters, with single apostrophes allowed inside it:
 
@@ -221,7 +236,7 @@ A word is letters, with single apostrophes allowed inside it:
 2. GitHub starts a fresh Ubuntu machine for each Python version in the matrix.
 3. The machine checks out the code and installs the requested Python version.
 4. It installs the packages in `requirements.txt`.
-5. It runs the tests and writes an XML report.
+5. It runs the tests, which include a full run of the notebook, and writes an XML report.
 6. GitHub shows a green check if every step passed and a red cross if any step failed.
 
 ### Workflows
@@ -241,14 +256,13 @@ pip install -r requirements.txt
 pytest
 ```
 
-The 60 tests take about 17 seconds. They cover these things:
+The 69 tests take about 10 seconds. They cover these things:
 
 - **The small functions:** `find_words`, `rank`, `to_csv`, `load_stopwords` and `check_input`.
 - **The Beam steps:** two tests run a tiny pipeline with Beam's own test helpers
   (`TestPipeline`, `assert_that`, `equal_to`).
-- **Full runs through the command line:** a small text file, a stopword file and a bad input.
-- **The real data:** one test checks the numbers written in this README (4,176 words, 27,986
-  counted, `the` first with 910).
+- **Full runs of the word count:** a small text file, a stopword file, bad input, and the real data
+  (4,176 words, 27,986 counted, `the` first with 910).
 - **The second pipeline, worked by hand:** a tiny corpus of four short plays, where every number in
   the three CSV files was worked out on paper first.
 - **The second pipeline, recounted:** the real plays are counted again with `collections.Counter`,
@@ -258,16 +272,25 @@ The 60 tests take about 17 seconds. They cover these things:
   number of bars, the tooltips, the tables, that each genre keeps its colour, that text from the data
   is escaped, that the page is self-contained, and that a genre with no words gives a note and not
   a crash.
-- **This README:** three tests check its numbers against the real run: the table of plays, the rates of
-  the ten listed words, and the claim about `bottom`.
+- **The notebook itself:** a test checks that the six original cells are unchanged. Another runs the
+  whole notebook from top to bottom in a clean copy of the repo and checks what it prints. A third
+  checks that the outputs saved in the notebook show the results and no errors. A fourth downloads
+  the eight plays into an empty folder, repairs a corrupted file and refuses a wrong checksum. It
+  skips itself when the network is not reachable.
+- **This README:** four tests check it. Three compare its numbers with the real run: the table of
+  plays, the rates of the ten listed words, and the claim about `bottom`. The fourth runs the code
+  examples in it.
 
 The tests passed on Python 3.12.15 and on 3.13.16. Deliberate breaks of the code were each caught by
-a test: eight in `wordcount.py` (no lowercasing, edge apostrophes back, no tie-break, wrong sort order,
-an off-by-one top-N, a wrong word counter, stopwords ignored, no empty-file check), eight in
-`compare.py` (a wrong combiner, changed smoothing, an inverted ratio, a shifted threshold, wrong genre
-totals, stopwords ignored, an off-by-one top-N, one-letter words kept) and seven in `report.py` (one
-colour for both genres, wrong order, text not escaped, the label on the smaller bar, six top words,
-a lost tick step, square bar tips).
+a test. 23 were tried while the code was still in three Python files: eight in the word count (no
+lowercasing, edge apostrophes back, no tie-break, wrong sort order, an off-by-one top-N, a wrong word
+counter, stopwords ignored, no empty-file check), eight in the comparison (a wrong combiner, changed
+smoothing, an inverted ratio, a shifted threshold, wrong genre totals, stopwords ignored, an
+off-by-one top-N, one-letter words kept) and seven in the report (one colour for both genres, wrong
+order, text not escaped, the label on the smaller bar, six top words, a lost tick step, square bar
+tips). After the code moved into the notebook, six more breaks were tried on the notebook itself: no
+lowercasing, an inverted ratio, one colour for both genres, an edited original cell, a stopword list
+that differs from `stopwords.txt`, and a stale saved output.
 
 ## Changes From the Upstream Lab
 
@@ -283,33 +306,37 @@ Each change is its own commit.
   different words is 4,176.
 - **The output was Python's text form of a tuple,** such as `('KING', 243)`, in no order. It is
   now a CSV file with a header, sorted by count and then by word.
-- **The pipeline could only run in a notebook.** Its last line needed a helper that uses `!`
-  shell commands. The pipeline now lives in `wordcount.py` and runs from the command line.
-  (A comment in the notebook says "first 20 results", and the command prints 200. The notebook
-  is left unchanged, and the new command has a `--top-n` option instead.)
+- **A comment and its command disagreed.** The lab's comment says "first 20 results", and the command
+  prints 200. The original cell is left as it is, and the new code uses `top_n`, which defaults to 20.
 
 ### Added
 
-- **A second dataset and a second pipeline.** Eight plays from the lab's own bucket, and
-  `compare.py`, which reports on each play and on the two genres. It uses a custom combiner, a side
-  input, grouping by key and a composite transform.
-- **A report.** `report.py` makes a self-contained HTML page with inline SVG charts, a light and a
-  dark mode, tooltips and a table view of every chart.
-- **Options:** `--top-n` and an optional stopword file.
+- **Part 2 of the notebook,** in five sections that are listed in the [Overview](#overview).
+- **A second dataset and a second pipeline.** Eight plays from the lab's own bucket, and a pipeline
+  that reports on each play and on the two genres. It uses a custom combiner, a side input, grouping
+  by key and a composite transform.
+- **A dashboard.** A self-contained HTML page with inline SVG charts, a light and a dark mode,
+  tooltips and a table view of every chart.
+- **Options:** `top_n` and an optional stopword file.
 - **An input check** that stops with a clear message.
 - **Three counters** with Beam's metrics: lines, lines without words, and words. They matched
   independent counts of the file: 5,525 lines, 1,665 lines with no letter, and 27,986 words
   (the sum of all the counts).
-- **60 tests** and a `requirements.txt`.
+- **A setup cell** that installs `apache-beam` and a compatible pandas when they are missing.
+- **69 tests** and a `requirements.txt`.
 - **A GitHub Actions workflow** that runs the tests on Python 3.12 and 3.13.
 
 ### Changed
 
-- Nothing in the three original files. The notebook, the data file and the original output file
-  are byte-identical to the course repository.
+- Nothing in the first six cells of the notebook. The data file and the original output file are
+  byte-identical to the course repository. The original word count rewrites its output file when it
+  runs, with the same counts.
 
 ## Known Limitations
 
+- **Not run in Colab.** The notebook was run in a Jupyter kernel on Python 3.12 and 3.13. The setup
+  cell is meant to make it work in Colab, but that was not tried. The picture in the last cell shows
+  as a broken image when the notebook runs without the `docs/` folder.
 - **All the pairs are gathered on one worker to sort them.** Beam does not promise any order,
   so the pipeline puts every word in one list. This is fine for one play and would not scale to
   a large text.
@@ -326,14 +353,16 @@ Each change is its own commit.
   length.
 - **One-letter words are left out of the genre comparison.** Without that rule, `t` (from `'t`, which
   is "it" with an apostrophe in front) appeared 34 times in the plays.
-- **The report was checked in Chrome only,** in light and dark mode. A bar smaller than 1.5 pixels is
+- **The dashboard was checked in Chrome only,** in light and dark mode. A bar smaller than 1.5 pixels is
   drawn 1.5 pixels wide, so a tiny value stays visible. The tooltip and the table give the exact value.
-- **`compare.py` needs exactly two genre folders.** It stops with a message otherwise.
-- **The packages are not pinned.** The tested versions were Apache Beam 2.77.0 and pytest 9.2.0.
+  The notebook shows the page inside a frame, and a viewer such as GitHub may not show frames. That is
+  why a saved picture of the page follows it.
+- **The comparison needs exactly two genre folders.** `run_compare` raises `ValueError` otherwise.
+- **The packages are not pinned,** except that pandas must be older than 2.4. The tested versions are
+  listed under [Requirements](#requirements).
 - **The runner is Beam's default.** In Beam 2.77 it is `SwitchingDirectRunner`, and the log of
   this pipeline shows `PrismRunner`. Another Beam version may choose differently.
-- **GitHub Actions had not run on this code at the time of writing.** The workflow's commands
-  were run locally and passed.
+- **GitHub Actions had not run on this code at the time of writing.** The tests were run locally.
 
 ## Lessons Learned
 
@@ -356,13 +385,18 @@ Each change is its own commit.
   uses them to compute its rate.
 - Beam refused a side input on `FlatMapTuple` with "Side inputs must have defaults for FlatMapTuple".
   A plain `FlatMap` with a small wrapper function worked.
+- Inside a notebook, importing Beam also imports pandas. With pandas 3.1.0 the import failed with
+  "type object 'DataFrame' has no attribute 'first'". Beam's own package data asks for pandas older
+  than 2.4, and with pandas 2.3.3 it worked. Read what a library declares that it supports.
 - A second, independent count is the best test. The tests recount the plays with `Counter`, with no
   Beam, and the results matched. The same recount showed that my first guess for the number of
   different words after lowercasing was wrong.
-- Look at what you build. The first picture of the report showed pale text on a white page, because
+- A notebook can be tested. The tests run the tagged code cells to get the functions, and run the whole
+  notebook with `nbclient` to prove that it works from top to bottom.
+- Look at what you build. The first picture of the dashboard showed pale text on a white page, because
   the colour variables were defined below the element that set the page background. A long play title
   was also cut off. Tests did not find either problem.
 - The output can show a flaw in a rule. The token `t` came from my own rule that drops edge
   apostrophes. A one-letter filter in the comparison fixed it.
 - A small pipeline can be tested like any function. `TestPipeline` and `assert_that` check a
-  step on a few lines, and the whole test run takes about 10 seconds.
+  step on a few lines.

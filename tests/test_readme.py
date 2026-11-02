@@ -1,6 +1,6 @@
 """The numbers in README.md must come from a real run, so a wrong number fails a test."""
 import csv
-import re
+import doctest
 from pathlib import Path
 
 from report import title_of
@@ -38,3 +38,8 @@ def test_readme_says_bottom_is_mostly_one_character():
     dream = uses(ROOT / 'plays/comedies/midsummersnightsdream.txt', 'bottom')
     comedies = sum(uses(path, 'bottom') for path in (ROOT / 'plays/comedies').glob('*.txt'))
     assert 'bottom` is a character: {} of its {} uses'.format(dream, comedies) in README
+
+
+def test_readme_code_examples_run():
+    result = doctest.testfile(str(ROOT / 'README.md'), module_relative=False)
+    assert result.attempted == 5 and result.failed == 0
