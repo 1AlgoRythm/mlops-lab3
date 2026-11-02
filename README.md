@@ -1,6 +1,6 @@
 # Apache Beam Lab – Word Count on King Lear, and Eight Plays
 
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/1AlgoRythm/mlops-lab3/blob/main/Try_Apache_Beam_Python.ipynb)
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/1AlgoRythm/mlops-lab3/blob/main/LAB3.ipynb)
 
 A notebook that extends the course's Apache Beam lab. Beam is a library for writing data pipelines.
 A pipeline runs on a "runner", the engine that executes it, and Beam has several runners.
@@ -11,8 +11,9 @@ plays and two genres with a second pipeline, and builds an HTML dashboard of the
 asks who speaks the most in each play, and how long the words are.
 
 Based on `Labs/Data_Labs/Apache_Beam_Labs` from https://github.com/raminmohammadi/MLOps
-(MLOps, DADS 7305, Northeastern University). The notebook is `Try_Apache_Beam_Python.ipynb`, the
-same file the lab gives. Its first six cells are the course's own and are unchanged.
+(MLOps, DADS 7305, Northeastern University). The notebook is `LAB3.ipynb`. It is the
+lab's own `Try_Apache_Beam_Python.ipynb`, renamed. Its first six cells are the course's own and are
+unchanged.
 
 ## Contents
 
@@ -162,7 +163,7 @@ pip install -r requirements.txt
 
 ## Usage
 
-Open `Try_Apache_Beam_Python.ipynb` and run all the cells from top to bottom. In Colab, use
+Open `LAB3.ipynb` and run all the cells from top to bottom. In Colab, use
 *Runtime, Run all*. The notebook's own setup cell installs `apache-beam`, and a pandas that Beam
 accepts, when they are missing.
 
@@ -203,7 +204,7 @@ output file.
 
 ```
 .
-├── Try_Apache_Beam_Python.ipynb  the lab notebook: the course's cells, then Part 2
+├── LAB3.ipynb                    the lab notebook: the course's cells, then Part 2
 ├── data/kinglear.txt             the input text (from the original lab)
 ├── docs/report.png               a picture of the dashboard
 ├── requirements.txt
