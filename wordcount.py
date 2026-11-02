@@ -6,8 +6,12 @@ import apache_beam as beam
 
 
 def find_words(line):
-    """Return every word in one line of text, in lower case."""
-    return re.findall(r"[a-z']+", line.lower())
+    """Return every word in one line of text, in lower case.
+
+    A word is letters, with single apostrophes allowed inside it: don't stays one word,
+    'tis counts as tis, and a lone quote mark is not a word.
+    """
+    return re.findall(r"[a-z]+(?:'[a-z]+)*", line.lower())
 
 
 def build_pipeline(pipeline, inputs_pattern, outputs_prefix):
