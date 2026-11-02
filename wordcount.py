@@ -6,8 +6,8 @@ import apache_beam as beam
 
 
 def find_words(line):
-    """Return every word in one line of text."""
-    return re.findall(r"[a-zA-Z']+", line)
+    """Return every word in one line of text, in lower case."""
+    return re.findall(r"[a-z']+", line.lower())
 
 
 def build_pipeline(pipeline, inputs_pattern, outputs_prefix):
