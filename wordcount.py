@@ -6,6 +6,7 @@ import re
 import sys
 
 import apache_beam as beam
+from apache_beam.metrics import Metrics, MetricsFilter
 
 
 def find_words(line):
@@ -15,6 +16,23 @@ def find_words(line):
     'tis counts as tis, and a lone quote mark is not a word.
     """
     return re.findall(r"[a-z]+(?:'[a-z]+)*", line.lower())
+
+
+class FindWords(beam.DoFn):
+    """Split each line into words, and count lines, lines without words, and words as it goes."""
+
+    def __init__(self):
+        self.lines = Metrics.counter('wordcount', 'lines')
+        self.lines_without_words = Metrics.counter('wordcount', 'lines_without_words')
+        self.words = Metrics.counter('wordcount', 'words')
+
+    def process(self, line):
+        words = find_words(line)
+        self.lines.inc()
+        if not words:
+            self.lines_without_words.inc()
+        self.words.inc(len(words))
+        yield from words
 
 
 def load_stopwords(path):
@@ -48,7 +66,7 @@ def build_pipeline(pipeline, inputs_pattern, outputs_prefix, top_n=0, stopwords=
     word_counts = (
         pipeline
         | 'Read lines' >> beam.io.ReadFromText(inputs_pattern)  # str, one line
-        | 'Find words' >> beam.FlatMap(find_words)  # str, one word
+        | 'Find words' >> beam.ParDo(FindWords())  # str, one word
         | 'Drop stopwords' >> beam.Filter(lambda word: word not in stopwords)  # str, one word
         | 'Pair words with 1' >> beam.Map(lambda word: (word, 1))  # (str, int)
         | 'Group and sum' >> beam.CombinePerKey(sum)  # (str, int): word, count
@@ -80,8 +98,13 @@ def main():
         stopwords = load_stopwords(args.stopwords) if args.stopwords else frozenset()
     except (ValueError, OSError) as error:
         sys.exit('wordcount: {}'.format(error))
-    with beam.Pipeline() as pipeline:
-        build_pipeline(pipeline, args.input, args.output, args.top_n, stopwords)
+    pipeline = beam.Pipeline()
+    build_pipeline(pipeline, args.input, args.output, args.top_n, stopwords)
+    result = pipeline.run()
+    result.wait_until_finish()
+    counters = result.metrics().query(MetricsFilter().with_namespace('wordcount'))['counters']
+    print('wordcount: ' + ', '.join(
+        '{} {}'.format(counter.key.metric.name, counter.committed) for counter in sorted(counters, key=lambda c: c.key.metric.name)))
 
 
 if __name__ == '__main__':
