@@ -6,7 +6,10 @@ An Apache Beam pipeline that counts the words in Shakespeare's *King Lear*. Beam
 writing data pipelines. A pipeline runs on a "runner", the engine that executes it, and Beam has
 several runners. This pipeline
 reads the play, splits it into words, counts them, sorts them and writes the top words to a CSV
-file. It runs as a normal Python program, and 19 tests check the code.
+file. It runs as a normal Python program.
+
+A second pipeline, `compare.py`, reads eight plays (four tragedies and four comedies) and compares how
+they use words. `report.py` turns its results into an HTML dashboard. 60 tests check the code.
 
 Based on `Labs/Data_Labs/Apache_Beam_Labs` from https://github.com/raminmohammadi/MLOps
 (MLOps, DADS 7305, Northeastern University). The original notebook is kept here, unchanged, as
@@ -15,6 +18,7 @@ Based on `Labs/Data_Labs/Apache_Beam_Labs` from https://github.com/raminmohammad
 ## Contents
 
 - [Overview](#overview)
+- [Comparing the plays](#comparing-the-plays)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
@@ -40,6 +44,67 @@ The steps run in this order:
 
 On the whole play there are 27,986 words and 4,176 different words. The most common are `the`
 (910), `and` (738) and `i` (652).
+
+## Comparing the plays
+
+`compare.py` is a second pipeline. It reads the files in `plays/`: four tragedies and four comedies,
+one text file per play. The name of the folder is the genre. The files come from the same public
+bucket as the lab's own data. `plays/SOURCES.md` lists each file's address, size and checksum.
+
+It writes three CSV files to `outputs/`:
+
+| File | What it holds |
+|---|---|
+| `play_stats.csv` | Words, different words, and different words per word said, for each play |
+| `play_top_words.csv` | The ten most common words of each play, without stopwords |
+| `genre_words.csv` | The 15 words that tragedies use most compared with comedies, and the 15 for comedies |
+
+Run it, then build the report, and open `outputs/report.html` in a browser:
+
+```bash
+python compare.py
+python report.py
+```
+
+`docs/report.html` is a saved copy of the report, and this is how it looks:
+
+![The report: bars for the length of each play, two charts of genre words, and a table of top words](docs/report.png)
+
+Beam ideas that this pipeline adds to the lab's word count:
+
+1. `ReadFromTextWithFilename` gives each line together with its file name. The name gives the genre
+   and the play.
+2. `Count.PerElement` counts each `(genre, play, word)`.
+3. `PlayStats` is a custom combiner. It folds the counts of one play into two numbers: the words and
+   the different words.
+4. The total number of words in each genre reaches every word through a side input, which is a
+   small result that Beam hands to every worker.
+5. `WriteCsv` is a composite transform. It gathers rows, sorts them and writes one CSV file.
+
+The plays, longest first:
+
+| Play | Genre | Words | Different words | Different per word said |
+|---|---|---|---|---|
+| Hamlet | tragedies | 32,396 | 4,728 | 0.1459 |
+| Othello | tragedies | 28,059 | 3,801 | 0.1355 |
+| King Lear | tragedies | 27,986 | 4,176 | 0.1492 |
+| As You Like It | comedies | 23,054 | 3,272 | 0.1419 |
+| Much Ado About Nothing | comedies | 22,718 | 2,979 | 0.1311 |
+| Twelfth Night | comedies | 21,570 | 3,118 | 0.1446 |
+| Macbeth | tragedies | 18,414 | 3,358 | 0.1824 |
+| A Midsummer Night's Dream | comedies | 17,332 | 3,005 | 0.1734 |
+
+Tragedies and comedies use different words. Each pair shows how often the word appears per 10,000
+words in tragedies, then in comedies:
+
+- **More in tragedies:** `castle` (4.45 and 0.06), `ghost` (3.70 and 0.06), `king` (51.05 and 1.36),
+  `witch` (5.38 and 0.18) and `doctor` (4.35 and 0.18).
+- **More in comedies:** `bottom` (0.14 and 8.33), `niece` (0.14 and 4.07), `count` (0.33 and 5.14),
+  `forest` (0.33 and 5.14) and `sad` (0.33 and 3.84).
+
+Not every word on the comedy list is a plain word. `bottom` is a character: 67 of its 70 uses in the
+comedies are in *A Midsummer Night's Dream*. `count` is often a noble title, as in "Count Claudio"
+and "Count Orsino".
 
 ## Requirements
 
@@ -86,18 +151,22 @@ This gives `king` (311), `lear` (253), `thou` (220), `kent` (175), `gloucester` 
 `wordcount: lines 5525, lines_without_words 1665, words 27986`.
 
 If the input is missing or empty, the program stops with a message and exits with code 1. It
-writes no output file.
+writes no output file. The second pipeline is described in [Comparing the plays](#comparing-the-plays).
 
 ## Project Structure
 
 ```
 .
 ├── wordcount.py                  the pipeline and its command line
+├── compare.py                    the second pipeline: eight plays, two genres
+├── report.py                     builds the HTML report from the CSV files
 ├── stopwords.txt                 a short list of very common words
 ├── data/kinglear.txt             the input text (from the original lab)
+├── plays/                        four tragedies and four comedies, and SOURCES.md
+├── docs/                         a saved copy of the report, and a picture of it
 ├── outputs/part-00000-of-00001   the original lab's output file (unchanged)
 ├── Try_Apache_Beam_Python.ipynb  the original lab notebook (unchanged)
-├── tests/test_wordcount.py       19 tests
+├── tests/                        60 tests in four files, and shared fixtures
 ├── requirements.txt
 ├── pytest.ini
 └── .github/workflows/tests.yml   runs the tests on GitHub
@@ -116,6 +185,18 @@ Everything is in `wordcount.py`.
 | `check_input(pattern)` | Raises `ValueError` if no file matches or every file is empty |
 | `load_stopwords(path)` | Reads a stopword file into a set |
 | `build_pipeline(...)` | Adds all the steps to a Beam pipeline |
+
+`compare.py` and `report.py` hold the functions of the second pipeline:
+
+| Name | What it does |
+|---|---|
+| `play_key(path)` | Returns `(genre, play)` from a path such as `plays/tragedies/hamlet.txt` |
+| `find_genres(pattern)` | Returns the two genre folder names, or raises `ValueError` if there are not exactly two |
+| `PlayStats` | The custom combiner: counts to `(words, different words)` |
+| `genre_rows(...)` | Scores one word: rate per 10,000 words in each genre, and their ratio |
+| `pick_extremes(rows, top_n)` | Keeps the words that favour each genre most |
+| `WriteCsv` | The composite transform that gathers, sorts and writes one CSV |
+| `render(...)` in `report.py` | Builds the whole HTML page from the three CSV files |
 
 A word is letters, with single apostrophes allowed inside it:
 
@@ -160,7 +241,7 @@ pip install -r requirements.txt
 pytest
 ```
 
-The 19 tests take about 10 seconds. They cover four things:
+The 60 tests take about 17 seconds. They cover these things:
 
 - **The small functions:** `find_words`, `rank`, `to_csv`, `load_stopwords` and `check_input`.
 - **The Beam steps:** two tests run a tiny pipeline with Beam's own test helpers
@@ -168,10 +249,25 @@ The 19 tests take about 10 seconds. They cover four things:
 - **Full runs through the command line:** a small text file, a stopword file and a bad input.
 - **The real data:** one test checks the numbers written in this README (4,176 words, 27,986
   counted, `the` first with 910).
+- **The second pipeline, worked by hand:** a tiny corpus of four short plays, where every number in
+  the three CSV files was worked out on paper first.
+- **The second pipeline, recounted:** the real plays are counted again with `collections.Counter`,
+  with no Beam, and the CSV files must match. This covers the counts per play, the top words and the
+  ranking of genre words.
+- **The report:** the page is built from small fake data and from the real files. The tests check the
+  number of bars, the tooltips, the tables, that each genre keeps its colour, that text from the data
+  is escaped, that the page is self-contained, and that a genre with no words gives a note and not
+  a crash.
+- **This README:** three tests check its numbers against the real run: the table of plays, the rates of
+  the ten listed words, and the claim about `bottom`.
 
-The tests passed on Python 3.12.15 and on 3.13.16. Eight deliberate breaks of `wordcount.py`
-(no lowercasing, edge apostrophes back, no tie-break, wrong sort order, an off-by-one top-N,
-a wrong word counter, stopwords ignored, no empty-file check) were each caught by a test.
+The tests passed on Python 3.12.15 and on 3.13.16. Deliberate breaks of the code were each caught by
+a test: eight in `wordcount.py` (no lowercasing, edge apostrophes back, no tie-break, wrong sort order,
+an off-by-one top-N, a wrong word counter, stopwords ignored, no empty-file check), eight in
+`compare.py` (a wrong combiner, changed smoothing, an inverted ratio, a shifted threshold, wrong genre
+totals, stopwords ignored, an off-by-one top-N, one-letter words kept) and seven in `report.py` (one
+colour for both genres, wrong order, text not escaped, the label on the smaller bar, six top words,
+a lost tick step, square bar tips).
 
 ## Changes From the Upstream Lab
 
@@ -194,12 +290,17 @@ Each change is its own commit.
 
 ### Added
 
+- **A second dataset and a second pipeline.** Eight plays from the lab's own bucket, and
+  `compare.py`, which reports on each play and on the two genres. It uses a custom combiner, a side
+  input, grouping by key and a composite transform.
+- **A report.** `report.py` makes a self-contained HTML page with inline SVG charts, a light and a
+  dark mode, tooltips and a table view of every chart.
 - **Options:** `--top-n` and an optional stopword file.
 - **An input check** that stops with a clear message.
 - **Three counters** with Beam's metrics: lines, lines without words, and words. They matched
   independent counts of the file: 5,525 lines, 1,665 lines with no letter, and 27,986 words
   (the sum of all the counts).
-- **19 tests** and a `requirements.txt`.
+- **60 tests** and a `requirements.txt`.
 - **A GitHub Actions workflow** that runs the tests on Python 3.12 and 3.13.
 
 ### Changed
@@ -216,6 +317,18 @@ Each change is its own commit.
   becomes `caf`. The *King Lear* file has no such letters, so it does not change these results.
 - **The stopword list is short and chosen for this lab.** It is not a standard list. Words like
   `thou` and `thy` stay in the results.
+- **Eight plays are a small sample.** Another choice of plays would give other words.
+- **Names and titles can pass the filter.** `bottom` is a character, and `count` is often a title.
+  The cast lists and speaker names are in the text, so a play's own name leads its top words: `hamlet`
+  (485) in *Hamlet* and `macbeth` (311) in *Macbeth*.
+- **Different words per word said depends on length.** The two shortest plays, *Macbeth* and *A
+  Midsummer Night's Dream*, have the two highest values. Compare it only between plays of similar
+  length.
+- **One-letter words are left out of the genre comparison.** Without that rule, `t` (from `'t`, which
+  is "it" with an apostrophe in front) appeared 34 times in the plays.
+- **The report was checked in Chrome only,** in light and dark mode. A bar smaller than 1.5 pixels is
+  drawn 1.5 pixels wide, so a tiny value stays visible. The tooltip and the table give the exact value.
+- **`compare.py` needs exactly two genre folders.** It stops with a message otherwise.
 - **The packages are not pinned.** The tested versions were Apache Beam 2.77.0 and pytest 9.2.0.
 - **The runner is Beam's default.** In Beam 2.77 it is `SwitchingDirectRunner`, and the log of
   this pipeline shows `PrismRunner`. Another Beam version may choose differently.
@@ -237,5 +350,19 @@ Each change is its own commit.
 - A pipeline that ran is not a pipeline that is right. The lab ran fine and still counted
   `The` and `the` apart and counted a quote mark 15 times. Check the output, not only the exit
   code.
+- A custom combiner has four methods: make an empty total, add one input, merge two totals, and
+  produce the answer. The merge method exists because Beam may split the work and join the parts.
+- A side input is a small result that every worker can read. The genre totals are one, and each word
+  uses them to compute its rate.
+- Beam refused a side input on `FlatMapTuple` with "Side inputs must have defaults for FlatMapTuple".
+  A plain `FlatMap` with a small wrapper function worked.
+- A second, independent count is the best test. The tests recount the plays with `Counter`, with no
+  Beam, and the results matched. The same recount showed that my first guess for the number of
+  different words after lowercasing was wrong.
+- Look at what you build. The first picture of the report showed pale text on a white page, because
+  the colour variables were defined below the element that set the page background. A long play title
+  was also cut off. Tests did not find either problem.
+- The output can show a flaw in a rule. The token `t` came from my own rule that drops edge
+  apostrophes. A one-letter filter in the comparison fixed it.
 - A small pipeline can be tested like any function. `TestPipeline` and `assert_that` check a
   step on a few lines, and the whole test run takes about 10 seconds.
