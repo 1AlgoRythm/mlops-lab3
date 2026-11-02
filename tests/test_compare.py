@@ -143,14 +143,6 @@ def test_one_genre_exits_with_a_message_and_writes_nothing(tmp_path):
 # --- the real plays, checked against a plain-Python recount ---------------------------------
 
 @pytest.fixture(scope='module')
-def real_run(tmp_path_factory):
-    out = tmp_path_factory.mktemp('real')
-    done = run_compare(out)
-    assert done.returncode == 0, done.stderr[-600:]
-    return out
-
-
-@pytest.fixture(scope='module')
 def recount():
     """Count every play with collections.Counter. No Beam is used here."""
     plays = {}
