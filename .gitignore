@@ -1,12 +1,9 @@
+# Made when the notebook runs. They are not kept in the repository.
+plays/
+outputs/
+stopwords.txt
+
 __pycache__/
-*.pyc
-.pytest_cache/
-.DS_Store
-outputs/word_counts*.csv
+.ipynb_checkpoints/
 .venv/
-outputs/play_stats.csv
-outputs/play_top_words.csv
-outputs/genre_words.csv
-outputs/report.html
-outputs/speakers.csv
-outputs/word_lengths.csv
+.DS_Store
