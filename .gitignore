@@ -8,3 +8,5 @@ outputs/play_stats.csv
 outputs/play_top_words.csv
 outputs/genre_words.csv
 outputs/report.html
+outputs/speakers.csv
+outputs/word_lengths.csv

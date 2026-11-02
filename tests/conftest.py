@@ -13,7 +13,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 NOTEBOOK = ROOT / 'Try_Apache_Beam_Python.ipynb'
-EXPORTED = {'wordcount', 'compare', 'report'}
+EXPORTED = {'wordcount', 'compare', 'report', 'speakers'}
 
 
 def load_lab_module():
@@ -40,4 +40,20 @@ def real_run(tmp_path_factory):
     """Run the comparison once on the real plays and return the output folder."""
     out = tmp_path_factory.mktemp('real')
     lab.run_compare(str(ROOT / 'plays/*/*.txt'), str(out), str(ROOT / 'stopwords.txt'))
+    return out
+
+
+@pytest.fixture(scope='session')
+def real_speakers(tmp_path_factory):
+    """Run the speaker pipeline once on the real plays and return the output folder."""
+    out = tmp_path_factory.mktemp('speakers')
+    lab.run_speakers(str(ROOT / 'plays/*/*.txt'), str(out), top_n=5)
+    return out
+
+
+@pytest.fixture(scope='session')
+def real_lengths(tmp_path_factory):
+    """Run the word-length pipeline once on the real plays and return the output folder."""
+    out = tmp_path_factory.mktemp('lengths')
+    lab.run_word_lengths(str(ROOT / 'plays/*/*.txt'), str(out))
     return out

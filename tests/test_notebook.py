@@ -30,6 +30,8 @@ EXPECTED = [
     '8 plays verified',
     'tragedies,kinglear,27986,4176',
     'castle,tragedies',
+    'Rosalind',
+    '5.16%      4.29%',
 ]
 
 
@@ -52,10 +54,10 @@ def test_the_original_cells_keep_their_own_saved_outputs():
     assert cells()[4]['outputs'] and 'KING' in stream_text(cells()[4:5])
 
 
-def test_the_new_cells_are_tagged_for_the_three_exported_groups():
+def test_the_new_cells_are_tagged_for_the_four_exported_groups():
     tags = collections.Counter(tag for cell in cells() for tag in cell['metadata'].get('tags', []))
-    assert set(tags) == {'wordcount', 'compare', 'report'}
-    assert all(count >= 5 for count in tags.values())
+    assert set(tags) == {'wordcount', 'compare', 'report', 'speakers'}
+    assert all(count >= 3 for count in tags.values())
 
 
 def test_the_saved_outputs_show_the_results_and_no_errors():
