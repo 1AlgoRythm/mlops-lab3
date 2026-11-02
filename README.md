@@ -12,8 +12,8 @@ asks who speaks the most in each play, and how long the words are.
 
 Based on `Labs/Data_Labs/Apache_Beam_Labs` from https://github.com/raminmohammadi/MLOps
 (MLOps, DADS 7305, Northeastern University). The notebook is `LAB3.ipynb`. It is the
-lab's own `Try_Apache_Beam_Python.ipynb`, renamed. Its first six cells are the course's own and are
-unchanged.
+lab's own `Try_Apache_Beam_Python.ipynb`, renamed. The course's six cells are unchanged. One cell is
+added after the lab's Setup text: it installs the packages that are missing.
 
 ## Contents
 
@@ -35,7 +35,8 @@ The notebook has two parts.
 
 | Cells | What they are |
 |---|---|
-| The first six | The course's lab: set up, and a word count of *King Lear*. Unchanged. |
+| The course's six | The course's lab: set up, and a word count of *King Lear*. Unchanged. |
+| One added cell, after the lab's Setup text | Installs `apache-beam`, and a pandas that Beam accepts, when they are missing |
 | Part 2, section 1 | The flaws of the lab's word count, shown with numbers from its own output |
 | Part 2, section 2 | A fixed word count: lower case, a sorted CSV, `top_n`, stopwords, an input check, run counters |
 | Part 2, section 3 | A second dataset: eight plays, downloaded and checked against checksums |
@@ -147,25 +148,24 @@ genre's words. Words of 15 letters or more are pooled. Words of 6 letters or mor
 
 - Python 3.12 or 3.13. Apache Beam 2.77 lists Python 3.10 to 3.14.
 - A place to run a notebook: Jupyter, VS Code or Google Colab.
-- The packages in `requirements.txt`: `apache-beam`, and `pandas` in the range 1.4.3 up to 2.4,
-  because Beam needs pandas inside a notebook.
+- The packages `apache-beam`, and `pandas` in the range 1.4.3 up to 2.4, because Beam needs pandas
+  inside a notebook. The first code cell of the notebook installs them when they are missing.
 - Run with Python 3.12.15 and 3.13.16, Apache Beam 2.77.0 and pandas 2.3.3.
 
 ## Installation
 
+Get the repository, and open `LAB3.ipynb`. There is nothing else to install first.
+
 ```bash
 git clone https://github.com/1AlgoRythm/mlops-lab3.git
-cd mlops-lab3
-python3.12 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
 ```
 
 ## Usage
 
 Open `LAB3.ipynb` and run all the cells from top to bottom. In Colab, use
-*Runtime, Run all*. The notebook's own setup cell installs `apache-beam`, and a pandas that Beam
-accepts, when they are missing.
+*Runtime, Run all*. The first code cell installs `apache-beam`, and a pandas that Beam accepts, when
+they are missing. In a clean environment with no Beam and no pandas, the whole notebook ran in 22
+seconds.
 
 Running the notebook has these effects:
 
@@ -207,7 +207,6 @@ output file.
 ├── LAB3.ipynb                    the lab notebook: the course's cells, then Part 2
 ├── data/kinglear.txt             the input text (from the original lab)
 ├── docs/report.png               a picture of the dashboard
-├── requirements.txt
 └── .gitignore
 ```
 
@@ -281,14 +280,13 @@ Each change is its own commit.
 - **Three counters** with Beam's metrics: lines, lines without words, and words. They matched
   independent counts of the file: 5,525 lines, 1,665 lines with no letter, and 27,986 words
   (the sum of all the counts).
-- **A setup cell** that installs `apache-beam` and a compatible pandas when they are missing.
-- **A `requirements.txt`.**
+- **An install cell,** the first code cell. It installs `apache-beam` and a compatible pandas when they are missing.
 - **A speaker analysis and a word-length analysis,** section 6. Each play is read as one element, and a character's speeches and spoken words are counted from the layout of the file.
 
 ### Changed
 
-- Nothing in the first six cells of the notebook. The data file is byte-identical to the course
-  repository. The original word count writes `outputs/part-00000-of-00001` when it runs.
+- Nothing in the course's six cells. One cell is added among them, after the Setup text: the install
+  cell. The data file is byte-identical to the course repository. The original word count writes `outputs/part-00000-of-00001` when it runs.
 
 ## Known Limitations
 
@@ -350,6 +348,9 @@ Each change is its own commit.
 - Inside a notebook, importing Beam also imports pandas. With pandas 3.1.0 the import failed with
   "type object 'DataFrame' has no attribute 'first'". Beam's own package data asks for pandas older
   than 2.4, and with pandas 2.3.3 it worked. Read what a library declares that it supports.
+- Put the install in the first cell. My install cell first sat after the lab's own word count, so a
+  fresh environment failed at the lab's cell, before the install could run. I only saw it when I
+  started from an environment with no Beam.
 - Look at what you build. The first picture of the dashboard showed pale text on a white page, because
   the colour variables were defined below the element that set the page background. A long play title
   was also cut off. Only looking at the picture found both.

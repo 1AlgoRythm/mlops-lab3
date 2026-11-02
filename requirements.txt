@@ -1,2 +1,0 @@
-apache-beam
-pandas>=1.4.3,<2.4
