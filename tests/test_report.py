@@ -1,12 +1,10 @@
 """Tests for report.py: the helpers, the page built from small fake data, and the real report."""
-import subprocess
-import sys
 from html.parser import HTMLParser
 from pathlib import Path
 
 import pytest
 
-from report import bar_path, nice_ticks, read_rows, render, tick_label, title_of
+from report import bar_path, build_report, nice_ticks, read_rows, render, tick_label, title_of
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -157,18 +155,16 @@ def test_a_genre_with_no_words_gets_a_note_not_a_crash():
 
 # --- the command line, and the real report --------------------------------------------------
 
-def test_report_cli_says_what_to_do_when_the_csv_files_are_missing(tmp_path):
-    done = subprocess.run([sys.executable, str(ROOT / 'report.py'), '--output-dir', str(tmp_path)],
-                          capture_output=True, text=True, cwd=ROOT)
-    assert done.returncode == 1 and 'run compare.py first' in done.stderr
+def test_build_report_says_what_to_do_when_the_csv_files_are_missing(tmp_path):
+    with pytest.raises(ValueError, match='run the comparison first'):
+        build_report(str(tmp_path))
     assert not (tmp_path / 'report.html').exists()
 
 
 def test_real_report_matches_the_csv_files(real_run):
-    done = subprocess.run([sys.executable, str(ROOT / 'report.py'), '--output-dir', str(real_run)],
-                          capture_output=True, text=True, cwd=ROOT)
-    assert done.returncode == 0, done.stderr
+    returned = build_report(str(real_run))
     text = (real_run / 'report.html').read_text()
+    assert returned == text
     plays = read_rows(real_run / 'play_stats.csv')
     total = sum(int(row['words']) for row in plays)
     assert '{:,} words in 8 plays'.format(total) in text

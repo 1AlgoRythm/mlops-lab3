@@ -1,14 +1,12 @@
 """Tests for compare.py: small functions, a tiny corpus worked out by hand, and the real plays
 checked against a plain-Python recount that uses no Beam."""
 import csv
-import subprocess
-import sys
 from collections import Counter
 from pathlib import Path
 
 import pytest
 
-from compare import PlayStats, find_genres, genre_rows, pick_extremes, play_key, rows_to_csv
+from compare import PlayStats, find_genres, genre_rows, pick_extremes, play_key, rows_to_csv, run_compare
 from wordcount import find_words
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -17,11 +15,6 @@ ROOT = Path(__file__).resolve().parent.parent
 def read_csv(path):
     return list(csv.reader(Path(path).open()))
 
-
-def run_compare(output_dir, *args):
-    return subprocess.run(
-        [sys.executable, str(ROOT / 'compare.py'), '--output-dir', str(output_dir), *args],
-        capture_output=True, text=True, cwd=ROOT)
 
 
 # --- small functions ------------------------------------------------------------------------
@@ -106,9 +99,7 @@ def test_tiny_corpus_gives_the_numbers_worked_out_by_hand(tmp_path):
     stop = tmp_path / 'stop.txt'
     stop.write_text('\n')
     out = tmp_path / 'out'
-    done = run_compare(out, '--input', str(plays / '*/*.txt'), '--stopwords', str(stop),
-                       '--min-plays', '1', '--min-count', '1')
-    assert done.returncode == 0, done.stderr[-600:]
+    run_compare(str(plays / '*/*.txt'), str(out), str(stop), min_plays=1, min_count=1)
 
     assert read_csv(out / 'play_stats.csv') == [
         ['genre', 'play', 'words', 'distinct_words', 'distinct_per_word'],
@@ -130,14 +121,21 @@ def test_tiny_corpus_gives_the_numbers_worked_out_by_hand(tmp_path):
         ['alpha', 'x', '3', '1', '7000.0', '3000.0', '0.429', '3']]
 
 
-def test_one_genre_exits_with_a_message_and_writes_nothing(tmp_path):
+def test_one_genre_raises_a_clear_error_and_writes_nothing(tmp_path):
     plays = tmp_path / 'plays'
     make_play(plays, 'only', 'p1')
     out = tmp_path / 'out'
-    done = run_compare(out, '--input', str(plays / '*/*.txt'))
-    assert done.returncode == 1
-    assert 'exactly 2 genre folders' in done.stderr
+    with pytest.raises(ValueError, match='exactly 2 genre folders'):
+        run_compare(str(plays / '*/*.txt'), str(out), str(ROOT / 'stopwords.txt'))
     assert not (out / 'play_stats.csv').exists()
+
+
+def test_a_threshold_below_one_is_refused(tmp_path):
+    plays = tmp_path / 'plays'
+    make_play(plays, 'x', 'p1')
+    make_play(plays, 'y', 'p2')
+    with pytest.raises(ValueError, match='must be 1 or more'):
+        run_compare(str(plays / '*/*.txt'), str(tmp_path / 'out'), str(ROOT / 'stopwords.txt'), min_plays=0)
 
 
 # --- the real plays, checked against a plain-Python recount ---------------------------------

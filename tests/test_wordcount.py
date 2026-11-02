@@ -1,7 +1,5 @@
 """Tests for wordcount.py. Small functions first, then the Beam steps, then a full run."""
 import csv
-import subprocess
-import sys
 from pathlib import Path
 
 import apache_beam as beam
@@ -9,7 +7,7 @@ import pytest
 from apache_beam.testing.test_pipeline import TestPipeline
 from apache_beam.testing.util import assert_that, equal_to
 
-from wordcount import FindWords, check_input, find_words, load_stopwords, rank, to_csv
+from wordcount import FindWords, check_input, find_words, load_stopwords, rank, run_wordcount, to_csv
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -99,23 +97,16 @@ def test_count_step_adds_up_the_same_word():
         assert_that(counts, equal_to([('the', 2), ('cat', 1), ('dog', 1)]))
 
 
-# --- a full run through the command line -----------------------------------------------------
+# --- a full run -----------------------------------------------------------------------------
 
-def run_cli(tmp_path, *args):
-    return subprocess.run(
-        [sys.executable, str(ROOT / 'wordcount.py'), '--output', str(tmp_path / 'out'), *args],
-        capture_output=True, text=True, cwd=ROOT)
-
-
-def test_full_run_writes_a_sorted_csv_with_header_and_counters(tmp_path):
+def test_full_run_writes_a_sorted_csv_with_header_and_returns_counters(tmp_path):
     source = tmp_path / 'in'
     source.mkdir()
     (source / 'a.txt').write_text("The cat and the dog\n\nthe END, the 'end'\n")
-    done = run_cli(tmp_path, '--input', str(source / '*.txt'), '--top-n', '3')
-    assert done.returncode == 0, done.stderr[-500:]
+    counters = run_wordcount(str(source / '*.txt'), str(tmp_path / 'out'), top_n=3)
     rows = list(csv.reader((tmp_path / 'out.csv').open()))
     assert rows == [['word', 'count'], ['the', '4'], ['end', '2'], ['and', '1']]
-    assert 'lines 3, lines_without_words 1, words 9' in done.stdout
+    assert counters == {'lines': 3, 'lines_without_words': 1, 'words': 9}
 
 
 def test_full_run_with_stopwords_drops_them(tmp_path):
@@ -123,22 +114,29 @@ def test_full_run_with_stopwords_drops_them(tmp_path):
     source.write_text('the king the king the lear\n')
     stop = tmp_path / 'stop.txt'
     stop.write_text('the\n')
-    done = run_cli(tmp_path, '--input', str(source), '--stopwords', str(stop))
-    assert done.returncode == 0, done.stderr[-500:]
+    run_wordcount(str(source), str(tmp_path / 'out'), stopwords_path=str(stop))
     rows = list(csv.reader((tmp_path / 'out.csv').open()))
     assert rows == [['word', 'count'], ['king', '2'], ['lear', '1']]
 
 
-def test_bad_input_exits_with_a_message_and_writes_nothing(tmp_path):
-    done = run_cli(tmp_path, '--input', str(tmp_path / 'nothing*.txt'))
-    assert done.returncode == 1
-    assert 'no file matches' in done.stderr
+def test_bad_input_raises_a_clear_error_and_writes_nothing(tmp_path):
+    with pytest.raises(ValueError, match='no file matches'):
+        run_wordcount(str(tmp_path / 'nothing*.txt'), str(tmp_path / 'out'))
+    assert not (tmp_path / 'out.csv').exists()
+
+
+def test_a_negative_top_n_and_a_missing_stopword_file_are_refused(tmp_path):
+    (tmp_path / 'a.txt').write_text('word\n')
+    with pytest.raises(ValueError, match='top_n must be 0 or more'):
+        run_wordcount(str(tmp_path / 'a.txt'), str(tmp_path / 'out'), top_n=-3)
+    with pytest.raises(OSError):
+        run_wordcount(str(tmp_path / 'a.txt'), str(tmp_path / 'out'), stopwords_path=str(tmp_path / 'missing.txt'))
     assert not (tmp_path / 'out.csv').exists()
 
 
 def test_the_real_lab_data_gives_the_numbers_the_readme_states(tmp_path):
-    done = run_cli(tmp_path, '--top-n', '0')
-    assert done.returncode == 0, done.stderr[-500:]
+    counters = run_wordcount(str(ROOT / 'data/*'), str(tmp_path / 'out'), top_n=0)
+    assert counters == {'lines': 5525, 'lines_without_words': 1665, 'words': 27986}
     rows = list(csv.reader((tmp_path / 'out.csv').open()))[1:]
     assert len(rows) == 4176
     assert sum(int(count) for _, count in rows) == 27986
