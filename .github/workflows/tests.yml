@@ -1,0 +1,38 @@
+name: Tests
+run-name: Tests on ${{ github.ref_name }}
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # Apache Beam 2.77 lists Python 3.10 to 3.14. These two are the ones tested locally.
+        python-version: ["3.12", "3.13"]
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v7
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install the packages
+        run: pip install -r requirements.txt
+
+      - name: Run the tests and write an XML report
+        run: pytest --junitxml=pytest-report.xml
+
+      - name: Upload the test report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results-${{ matrix.python-version }}
+          path: pytest-report.xml
