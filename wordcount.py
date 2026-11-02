@@ -1,6 +1,9 @@
 """Word count with Apache Beam, moved out of the course notebook so it can run as a program."""
 import argparse
+import glob
+import os
 import re
+import sys
 
 import apache_beam as beam
 
@@ -18,6 +21,15 @@ def load_stopwords(path):
     """Read a stopword file: one word per line, blank lines ignored, case ignored."""
     with open(path) as handle:
         return {line.strip().lower() for line in handle if line.strip()}
+
+
+def check_input(inputs_pattern):
+    """Stop early, with a clear message, if the pattern matches no file or only empty files."""
+    paths = glob.glob(inputs_pattern)
+    if not paths:
+        raise ValueError("no file matches '{}'".format(inputs_pattern))
+    if all(os.path.getsize(path) == 0 for path in paths):
+        raise ValueError("every file matching '{}' is empty".format(inputs_pattern))
 
 
 def rank(word_counts, top_n=0):
@@ -61,7 +73,13 @@ def main():
     parser.add_argument('--top-n', type=int, default=20, help='keep the N most common words; 0 keeps all')
     parser.add_argument('--stopwords', help='file of words to ignore, one per line')
     args = parser.parse_args()
-    stopwords = load_stopwords(args.stopwords) if args.stopwords else frozenset()
+    try:
+        if args.top_n < 0:
+            raise ValueError('--top-n must be 0 or more')
+        check_input(args.input)
+        stopwords = load_stopwords(args.stopwords) if args.stopwords else frozenset()
+    except (ValueError, OSError) as error:
+        sys.exit('wordcount: {}'.format(error))
     with beam.Pipeline() as pipeline:
         build_pipeline(pipeline, args.input, args.output, args.top_n, stopwords)
 
