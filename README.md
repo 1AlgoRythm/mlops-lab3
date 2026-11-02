@@ -1,6 +1,5 @@
 # Apache Beam Lab – Word Count on King Lear, and Eight Plays
 
-[![Tests](https://github.com/1AlgoRythm/mlops-lab3/actions/workflows/tests.yml/badge.svg)](https://github.com/1AlgoRythm/mlops-lab3/actions/workflows/tests.yml)
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/1AlgoRythm/mlops-lab3/blob/main/Try_Apache_Beam_Python.ipynb)
 
 A notebook that extends the course's Apache Beam lab. Beam is a library for writing data pipelines.
@@ -8,7 +7,7 @@ A pipeline runs on a "runner", the engine that executes it, and Beam has several
 
 The lab counts the words in Shakespeare's *King Lear*. This notebook keeps that lab and then does
 more. It fixes the flaws of the word count, adds a second dataset of eight plays, compares the
-plays and two genres with a second pipeline, and builds an HTML dashboard of the results. 69 tests
+plays and two genres with a second pipeline, and builds an HTML dashboard of the results. 88 tests
 check the code, and one of them runs the whole notebook.
 
 Based on `Labs/Data_Labs/Apache_Beam_Labs` from https://github.com/raminmohammadi/MLOps
@@ -19,12 +18,12 @@ same file the lab gives. Its first six cells are the course's own and are unchan
 
 - [Overview](#overview)
 - [Comparing the plays](#comparing-the-plays)
+- [Who speaks, and how long are the words?](#who-speaks-and-how-long-are-the-words)
 - [Requirements](#requirements)
 - [Installation](#installation)
 - [Usage](#usage)
 - [Project Structure](#project-structure)
 - [API Reference](#api-reference)
-- [Continuous Integration](#continuous-integration)
 - [Testing](#testing)
 - [Changes From the Upstream Lab](#changes-from-the-upstream-lab)
 - [Known Limitations](#known-limitations)
@@ -42,6 +41,7 @@ The notebook has two parts.
 | Part 2, section 3 | A second dataset: eight plays, downloaded and checked against checksums |
 | Part 2, section 4 | A second pipeline that compares the plays and two genres |
 | Part 2, section 5 | A dashboard: one self-contained HTML page with charts |
+| Part 2, section 6 | Who speaks the most in each play, and how long the words are |
 
 The fixed word count is a chain of steps. Beam calls the data that flows between steps a
 `PCollection`. The steps run in this order:
@@ -112,6 +112,38 @@ Not every word on the comedy list is a plain word. `bottom` is a character: 67 o
 comedies are in *A Midsummer Night's Dream*. `count` is often a noble title, as in "Count Claudio"
 and "Count Orsino".
 
+## Who speaks, and how long are the words?
+
+Section 6 of the notebook asks two more questions of the same eight plays. Each has its own pipeline.
+
+**Who speaks the most?** A play file starts each speech with `NAME<tab>words`, and the next lines of
+the same speech are indented. Stage directions are in `[brackets]`, and every scene begins with an
+`ACT` line and a `SCENE` line. The cast list before the first `ACT I` has the same `NAME<tab>words`
+shape, so the parser skips it. A speech runs over many lines, so the pipeline reads each whole play
+as one element, with `fileio.MatchFiles` and `fileio.ReadMatches`, and splits it into speeches. It
+counts the speeches and the spoken words of each character, without stage directions.
+
+The parser was checked against a second method, one regular expression over the whole text. The two
+agree on every speech in all eight plays. The speaker with the most speeches in each play:
+
+| Play | Speaker with most speeches | Speeches | Words |
+|---|---|---|---|
+| As You Like It | Rosalind | 201 | 5,737 |
+| A Midsummer Night's Dream | Bottom | 50 | 1,691 |
+| Much Ado About Nothing | Don Pedro | 135 | 2,485 |
+| Twelfth Night | Sir Toby Belch | 152 | 2,705 |
+| Hamlet | Hamlet | 359 | 11,649 |
+| King Lear | King Lear | 187 | 5,612 |
+| Macbeth | Macbeth | 146 | 5,350 |
+| Othello | Othello | 274 | 6,256 |
+
+Iago speaks less often than Othello (272 speeches against 274) but says more words (8,411 against
+6,256).
+
+**How long are the words?** Every word is measured, and each length is counted as a percent of the
+genre's words. Words of 15 letters or more are pooled. Words of 6 letters or more make up 17,785 of
+84,674 words in the comedies (21.0%) and 24,662 of 106,855 words in the tragedies (23.1%).
+
 ## Requirements
 
 - Python 3.12 or 3.13. Apache Beam 2.77 lists Python 3.10 to 3.14.
@@ -143,6 +175,7 @@ Running the notebook has these effects:
 - The fixed word count writes `outputs/word_counts.csv` and `outputs/word_counts_no_stopwords.csv`.
 - Section 3 downloads the eight plays into `plays/` when they are missing.
 - Section 4 writes the three CSV files, and section 5 writes `outputs/report.html`.
+- Section 6 writes `outputs/speakers.csv` and `outputs/word_lengths.csv`.
 
 To run the whole notebook without a browser, run its test:
 
@@ -158,6 +191,8 @@ own input:
 | `run_wordcount` | `inputs_pattern='data/*'`, `outputs_prefix='outputs/word_counts'`, `top_n=20`, `stopwords_path=None` | Runs the fixed word count and returns its counters. `top_n=0` keeps every word. |
 | `run_compare` | `inputs_pattern='plays/*/*.txt'`, `output_dir='outputs'`, `stopwords_path='stopwords.txt'`, `top_n=10`, `genre_top_n=15`, `min_plays=3`, `min_count=30` | Writes the three CSV files |
 | `build_report` | `output_dir='outputs'` | Reads the three CSV files, writes `report.html` and returns the page |
+| `run_speakers` | `inputs_pattern='plays/*/*.txt'`, `output_dir='outputs'`, `top_n=5` | Writes the top speakers of each play |
+| `run_word_lengths` | `inputs_pattern='plays/*/*.txt'`, `output_dir='outputs'`, `longest=15` | Writes the share of each word length in each genre |
 
 For example, the eight most common words of *King Lear* without the very common ones:
 
@@ -182,18 +217,17 @@ output file.
 ├── plays/                        four tragedies and four comedies, and SOURCES.md
 ├── docs/                         a saved copy of the report, and a picture of it
 ├── outputs/part-00000-of-00001   the original lab's output file
-├── tests/                        69 tests in five files, and shared fixtures
+├── tests/                        88 tests in six files, and shared fixtures
 ├── requirements.txt
-├── pytest.ini
-└── .github/workflows/tests.yml   runs the tests on GitHub
+└── pytest.ini
 ```
 
 The notebook is the only place the code lives. Its code cells in Part 2 carry a tag, `wordcount`,
-`compare` or `report`. The tests run the cells with those tags to get the functions.
+`compare`, `report` or `speakers`. The tests run the cells with those tags to get the functions.
 
 ## API Reference
 
-These names are defined in the tagged cells of the notebook.
+These names are defined in the tagged cells of the notebook. The tag of a cell is `wordcount`, `compare`, `report` or `speakers`.
 
 | Name | Tag | What it does |
 |---|---|---|
@@ -212,6 +246,12 @@ These names are defined in the tagged cells of the notebook.
 | `WriteCsv` | `compare` | The composite transform that gathers, sorts and writes one CSV |
 | `build_compare_pipeline(...)` | `compare` | Adds all the steps of the comparison to a Beam pipeline |
 | `render(...)` | `report` | Builds the whole HTML page from the three CSV files |
+| `parse_speeches(text)` | `speakers` | Returns `(speaker, words)` for each speech in a whole play |
+| `count_spoken(text)` | `speakers` | Counts the words in some speech, without stage directions |
+| `read_whole_play(file)` | `speakers` | Turns a file into one `(path, text)` element |
+| `top_speakers(play, speakers, top_n)` | `speakers` | Ranks the speakers of one play, most speeches first |
+| `build_speakers_pipeline(...)` | `speakers` | Adds the speaker steps to a Beam pipeline |
+| `build_word_lengths_pipeline(...)` | `speakers` | Adds the word-length steps to a Beam pipeline |
 
 A word is letters, with single apostrophes allowed inside it:
 
@@ -228,27 +268,6 @@ A word is letters, with single apostrophes allowed inside it:
 
 ```
 
-## Continuous Integration
-
-### How it works
-
-1. A push to `main`, or a pull request, triggers the workflow.
-2. GitHub starts a fresh Ubuntu machine for each Python version in the matrix.
-3. The machine checks out the code and installs the requested Python version.
-4. It installs the packages in `requirements.txt`.
-5. It runs the tests, which include a full run of the notebook, and writes an XML report.
-6. GitHub shows a green check if every step passed and a red cross if any step failed.
-
-### Workflows
-
-| Workflow | File | Runs on | Command | Artifacts |
-|---|---|---|---|---|
-| Tests | `tests.yml` | push to `main`; pull requests | `pytest --junitxml=pytest-report.xml` | `test-results-3.12`, `test-results-3.13` |
-
-The job is written once, and GitHub runs it once per version in `strategy.matrix.python-version`:
-**3.12** and **3.13**. Versions are written in quotes, and `fail-fast: false` lets one version
-fail without cancelling the other.
-
 ## Testing
 
 ```bash
@@ -256,7 +275,7 @@ pip install -r requirements.txt
 pytest
 ```
 
-The 69 tests take about 10 seconds. They cover these things:
+The 88 tests take about 10 seconds. They cover these things:
 
 - **The small functions:** `find_words`, `rank`, `to_csv`, `load_stopwords` and `check_input`.
 - **The Beam steps:** two tests run a tiny pipeline with Beam's own test helpers
@@ -277,8 +296,13 @@ The 69 tests take about 10 seconds. They cover these things:
   checks that the outputs saved in the notebook show the results and no errors. A fourth downloads
   the eight plays into an empty folder, repairs a corrupted file and refuses a wrong checksum. It
   skips itself when the network is not reachable.
-- **This README:** four tests check it. Three compare its numbers with the real run: the table of
-  plays, the rates of the ten listed words, and the claim about `bottom`. The fourth runs the code
+- **Section 6:** a short play worked out by hand, with a stage direction that runs over two lines.
+  The parser is also compared with the regular-expression method on every real speech. The speaker
+  CSV and the word-length CSV are compared with recounts. The two pipelines are compared with
+  each other: the words per genre must match the play statistics.
+- **This README:** seven tests check it. Three compare its numbers with the real run: the table of
+  plays, the rates of the ten listed words, and the claim about `bottom`. Three more check the speaker
+  table, the sentence about Iago and Othello, and the word-length numbers. The last runs the code
   examples in it.
 
 The tests passed on Python 3.12.15 and on 3.13.16. Deliberate breaks of the code were each caught by
@@ -290,7 +314,9 @@ off-by-one top-N, one-letter words kept) and seven in the report (one colour for
 order, text not escaped, the label on the smaller bar, six top words, a lost tick step, square bar
 tips). After the code moved into the notebook, six more breaks were tried on the notebook itself: no
 lowercasing, an inverted ratio, one colour for both genres, an edited original cell, a stopword list
-that differs from `stopwords.txt`, and a stale saved output.
+that differs from `stopwords.txt`, and a stale saved output. Six more were tried on section 6: scene
+lines counted as speakers, stage directions counted, names not in title case, a flipped ranking, long
+words not pooled, and the cast list counted as speeches.
 
 ## Changes From the Upstream Lab
 
@@ -311,7 +337,7 @@ Each change is its own commit.
 
 ### Added
 
-- **Part 2 of the notebook,** in five sections that are listed in the [Overview](#overview).
+- **Part 2 of the notebook,** in six sections that are listed in the [Overview](#overview).
 - **A second dataset and a second pipeline.** Eight plays from the lab's own bucket, and a pipeline
   that reports on each play and on the two genres. It uses a custom combiner, a side input, grouping
   by key and a composite transform.
@@ -323,8 +349,8 @@ Each change is its own commit.
   independent counts of the file: 5,525 lines, 1,665 lines with no letter, and 27,986 words
   (the sum of all the counts).
 - **A setup cell** that installs `apache-beam` and a compatible pandas when they are missing.
-- **69 tests** and a `requirements.txt`.
-- **A GitHub Actions workflow** that runs the tests on Python 3.12 and 3.13.
+- **88 tests** and a `requirements.txt`.
+- **A speaker analysis and a word-length analysis,** section 6. Each play is read as one element, and a character's speeches and spoken words are counted from the layout of the file.
 
 ### Changed
 
@@ -362,7 +388,11 @@ Each change is its own commit.
   listed under [Requirements](#requirements).
 - **The runner is Beam's default.** In Beam 2.77 it is `SwitchingDirectRunner`, and the log of
   this pipeline shows `PrismRunner`. Another Beam version may choose differently.
-- **GitHub Actions had not run on this code at the time of writing.** The tests were run locally.
+- **Speaker names are the labels in the files.** `Lear` and `King Lear` can name the same person, and
+  the analysis counts each label it finds. Names are written in title case, with no colon at the end.
+- **The speaker analysis depends on the layout of the files:** `NAME<tab>words`, and `ACT` and `SCENE`
+  lines. A text with another layout would need another parser. Spoken words leave out the stage
+  directions.
 
 ## Lessons Learned
 
@@ -398,5 +428,11 @@ Each change is its own commit.
   was also cut off. Tests did not find either problem.
 - The output can show a flaw in a rule. The token `t` came from my own rule that drops edge
   apostrophes. A one-letter filter in the comparison fixed it.
+- A notebook kernel can hide a missing import. `beam.io.fileio` worked in the notebook, because the
+  kernel had already loaded it, and failed in plain Python. The tests run the cells outside a kernel,
+  and they found it.
+- Check a parser with a second method. My line-by-line parser and a regular expression over the whole
+  text first differed by a few words per speaker. The cause was stage directions that run over two
+  lines. After the fix they agree on every speech in all eight plays.
 - A small pipeline can be tested like any function. `TestPipeline` and `assert_that` check a
   step on a few lines.
