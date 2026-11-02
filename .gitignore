@@ -4,3 +4,7 @@ __pycache__/
 .DS_Store
 outputs/word_counts*.csv
 .venv/
+outputs/play_stats.csv
+outputs/play_top_words.csv
+outputs/genre_words.csv
+outputs/report.html
